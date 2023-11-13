@@ -1,0 +1,20 @@
+# https://taskfile.dev
+
+version: "3"
+
+includes:
+  build:
+    taskfile: ./docker
+
+tasks:
+  start:
+    desc: start application
+    cmds:
+      - python3 src/sau/__main__.py -c configs/config.yaml
+  pypi:
+    desc: build & upload application
+    cmds:
+      - rm -rf dist/
+      - rm -rf build/
+      - python3 -m build
+      - python3 -m twine upload --repository pypi dist/*

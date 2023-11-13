@@ -1,0 +1,31 @@
+# https://taskfile.dev
+
+version: "3"
+
+vars:
+  DOCKER_REGISTRY: ugwuanyi
+  IMAGE_NAME: "sau"
+  IMAGE_VERSION: '{{.IMAGE_VERSION | default "0.0.0"}}'
+
+tasks:
+  build_template:
+    desc: build docker image
+    preconditions:
+      - test ! -z "{{.IMAGE_NAME}}"
+    cmds:
+      - echo "image={{.DOCKER_REGISTRY}}/{{.IMAGE_NAME}}:{{.IMAGE_VERSION}}"
+      - docker buildx ls | grep "temp_builder" || docker buildx create --name=temp_builder
+      - docker buildx use temp_builder
+      - docker buildx build -f docker/Dockerfile --push --platform linux/amd64,linux/arm64 --no-cache --tag {{.DOCKER_REGISTRY}}/{{.IMAGE_NAME}}:{{.IMAGE_VERSION}} .
+      - docker buildx rm temp_builder
+    internal: true
+    silent: false
+  all:
+    desc: build awshealth image
+    cmds:
+      - task: build_template
+        vars:
+          IMAGE_VERSION: 0.0.0
+      - task: build_template
+        vars:
+          IMAGE_VERSION: latest
