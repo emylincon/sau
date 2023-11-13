@@ -1,0 +1,17 @@
+---
+version: '3.8'
+
+services:
+  sau:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    ports:
+      - 9191:9191
+    volumes:
+      - ./configs/config.yaml:/sau/config.yaml
+      - ${HOME}/.aws:/exporter/.aws
+    environment:
+      - AWS_PROFILE=my_aws_profile
+      - AWS_REGION=eu-central-1
+    command: -c /sau/config.yaml

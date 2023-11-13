@@ -1,0 +1,16 @@
+# list of regions to scrape: REQUIRED
+regions:
+  - eu-central-1
+  - eu-west-1
+
+# exporter port. Defaults to 9191
+exporter_port: 9191
+
+# Logging configuration
+logging:
+  # Number of log files to retain after log rotation
+  retention: 7
+  # log directory. defaults to current working directory
+  directory: "."
+  # log level (debug, info, warn, error). Defaults to info
+  level: info

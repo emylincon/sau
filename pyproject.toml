@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sau"
+version = "0.0.4"
+authors = [{ name = "Emeka Ugwuanyi", email = "ugwuanyiemy@gmail.com" }]
+description = "The SAU Exporter is a Python-based application designed to collect and expose AWS EC2 and EBS volume metrics for monitoring and observability. It utilizes the Prometheus client library to provide an HTTP endpoint for scraping metrics."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "boto3==1.28.80",
+    "prometheus-client==0.17.1",
+    "PyYAML==6.0.1",
+    "requests",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/emylincon/sau"
+"Bug Tracker" = "https://github.com/emylincon/sau/issues"
