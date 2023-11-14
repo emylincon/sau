@@ -1,3 +1,12 @@
+# -----------------------------------------------------------------------------
+# Copyright (c) 2023, Emeka Ugwuanyi.
+#
+# Distributed under the terms of the MIT License.
+#
+# The full license is in the file LICENSE, distributed with this software.
+#
+# -----------------------------------------------------------------------------
+
 #!/bin/python3
 import time
 import logging
@@ -15,8 +24,8 @@ import platform
 import json
 from multiprocessing_logging import install_mp_handler
 
-VERSION = "0.0.4"
-BUILD_DATE = "2023-11-10T11:42:18.806083"
+VERSION = "0.0.5"
+BUILD_DATE = "2023-11-14"
 AUTHOR = "Emeka Ugwuanyi"
 
 
