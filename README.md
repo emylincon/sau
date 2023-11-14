@@ -1,7 +1,7 @@
-# SAU Exporter
+# SaU (Stopped and Unattached) Exporter
 ## Overview
 
-The SAU Exporter is a Python-based application designed to collect and expose AWS EC2 and EBS volume metrics for monitoring and observability. It utilizes the Prometheus client library to provide an HTTP endpoint for scraping metrics.
+The SaU Exporter is a Python-based application designed to collect and expose AWS EC2 and EBS volume metrics for monitoring and observability. It utilizes the Prometheus client library to provide an HTTP endpoint for scraping metrics.
 
 ## Features
 * **EC2 Metrics**: Collects information about stopped EC2 instances in different AWS regions.
@@ -45,7 +45,7 @@ pip install -r requirements.txt
 Create a YAML configuration file with the necessary settings.
 #### Configuration Options
 * **Regions**: Specify the AWS regions for which you want to collect metrics.
-* **Exporter Port**: Define the port on which the exporter will expose metrics (default: 9000).
+* **Exporter Port**: Define the port on which the exporter will expose metrics (default: 9191).
 * **Logging Configuration**: Customize logging settings, such as log file directory and retention.
 See example below.
 ```yaml
@@ -54,8 +54,8 @@ regions:
   - eu-central-1
   - eu-west-1
 
-# exporter port. Defaults to 9000
-exporter_port: 9000
+# exporter port. Defaults to 9191
+exporter_port: 9191
 
 # Logging configuration
 logging:
