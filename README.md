@@ -14,10 +14,8 @@ The SaU Exporter is a Python-based application designed to collect and expose AW
 * **EBS Volume Metrics**: Retrieves data on unattached/errored EBS volumes, including volume state, type, size, and region.
 * **Prometheus Integration**: Exposes metrics in the Prometheus format, making it compatible with Prometheus monitoring systems.
 
-# Getting Started
-
 ## Installing via pip
-
+Pip package is available [here](https://pypi.org/project/sau/)
 ### Prerequisites:
 * Python 3.8+ installed on your system.
 * Ensure the required Python libraries are installed by running the following command.
