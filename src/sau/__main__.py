@@ -127,7 +127,7 @@ class EC2SAUCollector(Log):
         self.regions = regions
 
     def get_stopped_ec2(self, region: str) -> list:
-        """_summary_
+        """
         Gets all stopped ec2 instances for a given region
 
         Args:
@@ -159,7 +159,7 @@ class EC2SAUCollector(Log):
             return result
 
     def get_unattached_volumes(self, region: str) -> dict:
-        """_summary_
+        """
         Retrieves unattached volumes in the specified AWS region.
 
         Args:
@@ -216,7 +216,7 @@ class EC2SAUCollector(Log):
             return {"states": states, "result": []}
 
     def get_instance_metrics(self) -> dict:
-        """_summary_
+        """
         Retrieves metrics related to instances and volumes in different regions.
 
         Args:
@@ -261,10 +261,11 @@ class EC2SAUCollector(Log):
                 result["volumes"] += response["result"]
                 for key in result["volume_states"]:
                     result["volume_states"][key] += response["states"][key]
+        pool.close()
         return result
 
     def collect(self):
-        """_summary_
+        """
         Collects various metrics related to EC2 instances and EBS volumes and yields them for monitoring.
 
         Args:
@@ -336,9 +337,6 @@ class Util(Log):
         __init__(self, level: str = "info", path: str = ".", rentention: int = 7) -> None:
             Initializes the Util class.
 
-        getlogger(level: str = "info", path: str = ".", backupCount: int = 7) -> logging.Logger:
-            Set up and configure a logger for the sau_exporter.
-
         loop_until_interrupt() -> None:
             Executes a loop until an interrupt signal is received and then shuts down the SAU exporter.
 
@@ -362,49 +360,7 @@ class Util(Log):
         Log.__init__(self, level=level, path=path, rentention=rentention)
 
     @staticmethod
-    def getlogger(
-        level: str = "info", path: str = ".", backupCount: int = 7
-    ) -> logging.Logger:
-        """
-        Set up and configure a logger for the sau_exporter.
-
-        Args:
-        level (str): Logging level. Defaults to "info".
-        path (str): Path where the log file will be stored. Defaults to the current directory.
-        backupCount (int): Number of backup log files to keep. Defaults to 7.
-
-        Returns:
-        Logger: Configured logger for the sau_exporter.
-
-        """
-        levels: dict = {
-            "debug": logging.DEBUG,
-            "info": logging.INFO,
-            "warn": logging.WARNING,
-            "error": logging.ERROR,
-        }
-        path = f"{path}/sau_exporter.log"
-        logger = logging.getLogger("sau_exporter")
-        logger.setLevel(levels.get(level.lower(), logging.INFO))
-        format = 'time=%(asctime)s pid=%(process)d level=%(levelname)-2s message="%(message)s"'
-        formatter = logging.Formatter(format)
-
-        stdout_handler = logging.StreamHandler(sys.stdout)
-        stdout_handler.setLevel(logging.DEBUG)
-        stdout_handler.setFormatter(formatter)
-
-        file_handler = handlers.TimedRotatingFileHandler(
-            path, when="midnight", backupCount=backupCount
-        )
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(formatter)
-
-        logger.addHandler(file_handler)
-        logger.addHandler(stdout_handler)
-        return logger
-
-    @staticmethod
-    def loop_until_interrupt():
+    def loop_until_interrupt() -> None:
         """
         Executes a loop until an interrupt signal is received and then shuts down the SAU exporter.
 
