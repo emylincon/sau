@@ -12,7 +12,7 @@ RUN current_date=$(date '+%Y-%m-%d %H:%M:%S') &&\
     sed -i -E "s/BUILD_DATE =.*/BUILD_DATE = \"${current_date}\"/" ${MAIN_FILE}  &&\
     sed -i -E "s/VERSION =.*/VERSION = \"${VERSION}\"/" ${MAIN_FILE} &&\
     pip install --upgrade pip &&\
-    apk add --update --no-cache --virtual build-base gcc python3-dev musl-dev libffi-dev openssl-dev &&\
+    apk add --update --no-cache --virtual build-base gcc python3-dev musl-dev libffi-dev openssl-dev cargo &&\
     addgroup -g 1000 exporter && \
     adduser -u 1000 -D -G exporter exporter -h /exporter &&\
     chown -R exporter:exporter /exporter && \
