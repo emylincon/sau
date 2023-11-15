@@ -26,6 +26,22 @@ pip install -r requirements.txt
 pip install sau
 ```
 ### AWS Credentials
+The exporter requires two AWS EC2 permissions, `DescribeInstances` and `DescribeVolumes`. A sample iam policy document can be seen below:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeInstances",
+                "ec2:DescribeVolumes"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
 It would be easier to put the creds in a env file. Example `.env` file can be seen below:
 ```env
 AWS_ACCESS_KEY_ID=129QJDNC2OQD09N
@@ -99,6 +115,10 @@ python3 src/sau/__main__.py -c /path/to/your/config.yaml
 
 #### Metrics Endpoint:
 Once the exporter is running, metrics can be accessed at `http://localhost:<exporter_port>/`.
+
+## Grafana Dashboard
+Grafana dashboard of sample metrics
+![Grafana dashboard](images/grafana.png)
 
 ## Customization
 Feel free to extend or customize the exporter to meet your specific requirements. You can modify the provided code or add additional collectors to gather more AWS resource metrics.

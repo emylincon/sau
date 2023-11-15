@@ -1,0 +1,34 @@
+---
+version: '3.8'
+
+services:
+  sau:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    ports:
+      - 9191:9191
+    volumes:
+      - ./configs/config.yaml:/sau/config.yaml
+      - ${HOME}/.aws:/exporter/.aws
+    environment:
+      - AWS_PROFILE=${AWS_PROFILE}
+      - AWS_REGION=eu-central-1
+    command: -c /sau/config.yaml
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus/rules:/etc/prometheus/rules
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    volumes:
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./docker/grafana/grafana.ini:/etc/grafana/grafana.ini

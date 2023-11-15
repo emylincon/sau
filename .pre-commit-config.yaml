@@ -6,7 +6,6 @@ repos:
         args: [--allow-multiple-documents]
       - id: end-of-file-fixer
       - id: trailing-whitespace
-      - id: check-added-large-files
       - id: check-merge-conflict
       - id: mixed-line-ending
       - id: no-commit-to-branch

@@ -50,6 +50,7 @@ class Log:
         Initializes a new Log instance.
 
         Args:
+        - self: The current instance.
         - level (str): The logging level (default: "info").
         - path (str): The directory where the log file will be stored (default: current directory).
         - retention (int): Number of backup log files to keep (default: 7).
@@ -65,6 +66,9 @@ class Log:
     def setlogger(self) -> None:
         """
         Configures and sets up the logger with the specified settings.
+
+        Args:
+        - self: The current instance.
 
         Returns:
         None
@@ -123,6 +127,7 @@ class EC2SAUCollector(Log):
         Initializes a new EC2SAUCollector instance.
 
         Args:
+        - self: The current instance.
         - regions (list): List of AWS regions to collect metrics from.
         - level (str): The logging level (default: "info").
         - path (str): The directory where the log file will be stored (default: current directory).
@@ -134,16 +139,29 @@ class EC2SAUCollector(Log):
         """
         Log.__init__(self, level=level, path=path, rentention=rentention)
         self.regions = regions
+        self.errors = 0
 
-    def get_stopped_ec2(self, region: str) -> list:
+    def get_stopped_ec2(self, region: str) -> dict:
         """
-        Gets all stopped ec2 instances for a given region
+        Retrieves all stopped EC2 instances for a given AWS region.
 
         Args:
-            region (str): aws region to query
+            self: The current instance.
+            region (str): The AWS region to query.
 
         Returns:
-            list: returns a list of all stopped ec2 instances
+            dict: A dictionary containing two keys:
+                - 'response' (list): A list of dictionaries representing stopped EC2 instances.
+                  Each dictionary includes the following keys:
+                    - 'name' (str): The name of the instance.
+                    - 'region' (str): The AWS region where the instance is located.
+                    - 'instanceid' (str): The ID of the EC2 instance.
+                - 'errorcount' (int): The count of errors that occurred during the retrieval process.
+                - 'region' (str): The AWS region.
+
+        Raises:
+            None
+
         """
         self.setlogger()
         logging.debug("get_stopped_ec2 for region %s", region)
@@ -152,20 +170,27 @@ class EC2SAUCollector(Log):
         filter = [{"Name": "instance-state-name", "Values": ["stopped"]}]
         try:
             response = client.describe_instances(Filters=filter)
-            for instance in response["Reservations"]:
-                tags = {tag["Key"]: tag["Value"] for tag in instance.get("Tags", [])}
-                item = {
-                    "name": tags.get("Name"),
-                    "region": instance["Placement"]["AvailabilityZone"],
-                    "instanceid": instance["InstanceId"],
-                    "region": region,
-                }
-                result.append(item)
+            for reserve in response["Reservations"]:
+                for instance in reserve["Instances"]:
+                    tags = {
+                        tag["Key"]: tag["Value"] for tag in instance.get("Tags", [])
+                    }
+                    item = {
+                        "name": tags.get("Name"),
+                        "region": instance["Placement"]["AvailabilityZone"],
+                        "instanceid": instance["InstanceId"],
+                        "region": region,
+                    }
+                    result.append(item)
             client.close()
-            return result
+            return {"response": result, "errorcount": 0, "region": region}
+
         except Exception as error:
-            logging.error(f"error retrieving stopped ec2 instances from AWS: {error}")
-            return result
+            kind, _, traceback = sys.exc_info()
+            logging.error(
+                f"error retrieving stopped ec2 instances from AWS: Error={error}, ErrorType={kind.__name__}, TracebackInfo={traceback.tb_frame.f_code}, ErrorLineNumber={traceback.tb_lineno}"
+            )
+            return {"response": result, "errorcount": 1, "region": region}
 
     def get_unattached_volumes(self, region: str) -> dict:
         """
@@ -177,17 +202,20 @@ class EC2SAUCollector(Log):
 
         Returns:
             dict: A dictionary containing two keys:
-                - 'states' (dict): A dictionary containing the count of volumes in different states.
-                  Possible states are 'unattached' and 'error'.
-                - 'result' (list): A list of dictionaries, where each dictionary represents an unattached
-                  volume with the following keys:
-                    - 'name' (str): The name of the volume.
-                    - 'availabilityzone' (str): The availability zone of the volume.
-                    - 'size' (str): The size of the volume in the format '{size}GB'.
-                    - 'volumeid' (str): The ID of the volume.
-                    - 'volumetype' (str): The type of the volume.
-                    - 'state' (str): The state of the volume, which can be 'unattached' or an 'error' state.
-                    - 'region' (str): The AWS region where the volume is located.
+                - 'errorcount' (int): The count of errors that occurred during the retrieval process.
+                - 'region' (str): The AWS region.
+                - 'response' (dict): A dictionary containing the actual response.
+                    - 'states' (dict): A dictionary containing the count of volumes in different states.
+                    Possible states are 'unattached' and 'error'.
+                    - 'result' (list): A list of dictionaries, where each dictionary represents an unattached
+                    volume with the following keys:
+                        - 'name' (str): The name of the volume.
+                        - 'availabilityzone' (str): The availability zone of the volume.
+                        - 'size' (str): The size of the volume in the format '{size}GB'.
+                        - 'volumeid' (str): The ID of the volume.
+                        - 'volumetype' (str): The type of the volume.
+                        - 'state' (str): The state of the volume, which can be 'unattached' or an 'error' state.
+                        - 'region' (str): The AWS region where the volume is located.
 
         Raises:
             None
@@ -219,10 +247,16 @@ class EC2SAUCollector(Log):
                 }
                 result.append(item)
             client.close()
-            return {"states": states, "result": result}
+            response = {"states": states, "result": result}
+            return {"response": response, "errorcount": 0, "region": region}
         except Exception as error:
-            logging.error(f"error retrieving volume details from AWS: {error}")
-            return {"states": states, "result": []}
+            kind, _, traceback = sys.exc_info()
+            logging.error(
+                f"error retrieving volume details from AWS: Error={error}, ErrorType={kind.__name__}, TracebackInfo={traceback.tb_frame.f_code}, ErrorLineNumber={traceback.tb_lineno}"
+            )
+
+            response = {"states": states, "result": []}
+            return {"response": response, "errorcount": 1, "region": region}
 
     def get_instance_metrics(self) -> dict:
         """
@@ -235,7 +269,7 @@ class EC2SAUCollector(Log):
         dict: A dictionary containing the following metrics:
             - 'stopped_instances' (list): List of stopped instances.
             - 'volumes' (list): List of volumes.
-            - 'volume_states' (dict): Dictionary with the following keys:
+            - 'volume_states' (dict): Dictionary with the following values:
                 - 'unattached' (int): Number of unattached volumes.
                 - 'error' (int): Number of volumes with errors.
 
@@ -246,7 +280,10 @@ class EC2SAUCollector(Log):
         result = {
             "stopped_instances": [],
             "volumes": [],
-            "volume_states": {"unattached": 0, "error": 0},
+            "volume_states": {
+                region: {"unattached": 0, "error": 0} for region in self.regions
+            },
+            "stopped_instances_count": {region: 0 for region in self.regions},
         }
         processes = []
         funcs = {"ec2": self.get_stopped_ec2, "volume": self.get_unattached_volumes}
@@ -263,13 +300,19 @@ class EC2SAUCollector(Log):
                 )
 
         for p in processes:
+            response = p["process"].get()
+            region = response["region"]
             if p["name"] == "ec2":
-                result["stopped_instances"] += p["process"].get()
+                result["stopped_instances"] += response["response"]
+                result["stopped_instances_count"][region] = len(
+                    result["stopped_instances"]
+                )
+                self.errors += response["errorcount"]
             else:
-                response = p["process"].get()
-                result["volumes"] += response["result"]
-                for key in result["volume_states"]:
-                    result["volume_states"][key] += response["states"][key]
+                response_obj = response["response"]
+                self.errors += response["errorcount"]
+                result["volumes"] += response_obj["result"]
+                result["volume_states"][region] = response_obj["states"]
         pool.close()
         return result
 
@@ -291,15 +334,18 @@ class EC2SAUCollector(Log):
         data = self.get_instance_metrics()
 
         # compose metrics for stopped ec2 instances total
-        stopped = data["stopped_instances"]
+        stopped_count = data["stopped_instances_count"]
         gauge = GaugeMetricFamily(
             name=f"sau_ec2_stopped_instances_total",
             documentation=f"EC2 stopped instances total",
+            labels=["region"],
         )
-        gauge.add_metric(labels=[], value=len(stopped))
+        for key, value in stopped_count.items():
+            gauge.add_metric(labels=[key], value=value)
         yield gauge
 
         # compose metrics for stopped ec2 instances
+        stopped = data["stopped_instances"]
         if stopped:
             gauge = GaugeMetricFamily(
                 name=f"sau_ec2_stopped_instances",
@@ -315,10 +361,11 @@ class EC2SAUCollector(Log):
         gauge = GaugeMetricFamily(
             name=f"sau_ebs_volumes_total",
             documentation=f"EC2 EBS volumes total unattached or error",
-            labels=list(states.keys()),
+            labels=["status", "region"],
         )
-        for key, value in states.items():
-            gauge.add_metric(labels=[key], value=value)
+        for region, state_dict in states.items():
+            for status, value in state_dict.items():
+                gauge.add_metric(labels=[status, region], value=value)
         yield gauge
 
         # compose metrics for ebs volumes
@@ -332,7 +379,12 @@ class EC2SAUCollector(Log):
             for volume in volumes:
                 gauge.add_metric(labels=list(volume.values()), value=1)
             yield gauge
-        logging.info("metrics successfully collected")
+
+        if self.errors == 0:
+            logging.info("metrics successfully collected")
+        else:
+            logging.info("error(s) were encountered while collecting metrics")
+            self.errors = 0
 
 
 class Util(Log):
@@ -486,11 +538,6 @@ if __name__ == "__main__":
     util.setlogger()
 
     install_mp_handler()
-
-    # Create exporter logger
-    Logging = Util.getlogger(
-        path=config["logging"]["directory"], backupCount=config["logging"]["retention"]
-    )
 
     logging.info("Starting SAU Exporter")
 
