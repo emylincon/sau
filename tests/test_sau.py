@@ -35,16 +35,24 @@ class TestApp(unittest.TestCase):
         self.assertListEqual(list1=self.regions, list2=self.collector.regions)
         region = self.regions[0]
         self.assertListEqual(
-            list1=[], list2=self.collector.get_stopped_ec2(region=region)
+            list1=[],
+            list2=self.collector.get_stopped_ec2(region=region)["response"],
         )
-        d1 = {"states": {"unattached": 0, "error": 0}, "result": []}
+        d1 = {
+            "response": {"states": {"unattached": 0, "error": 0}, "result": []},
+            "errorcount": 1,
+            "region": region,
+        }
         self.assertDictEqual(
             d1=d1, d2=self.collector.get_unattached_volumes(region=region)
         )
         d1 = {
             "stopped_instances": [],
             "volumes": [],
-            "volume_states": {"unattached": 0, "error": 0},
+            "volume_states": {
+                region: {"unattached": 0, "error": 0} for region in self.regions
+            },
+            "stopped_instances_count": {region: 0 for region in self.regions},
         }
         self.assertDictEqual(d1=d1, d2=self.collector.get_instance_metrics())
         self.assertNotEqual(first=self.collector.__doc__, second="")

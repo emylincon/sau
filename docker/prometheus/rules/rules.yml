@@ -1,0 +1,27 @@
+groups:
+  - name: sample-alerts
+    rules:
+      - alert: EBS volume error
+        expr: sau_ebs_volumes{state="error"} > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: EBS
+        annotations:
+          summary: EBS volume error
+      - alert: EBS volume(s) unattached
+        expr: sau_ebs_volumes{state="unattached"} > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: EBS
+        annotations:
+          summary: EBS volume(s) unattached
+      - alert: AWS Stopped instances
+        expr: sau_ec2_stopped_instances > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: EC2
+        annotations:
+          summary: AWS Stopped instances

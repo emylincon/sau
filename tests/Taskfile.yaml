@@ -1,0 +1,13 @@
+# https://taskfile.dev
+
+version: "3"
+
+tasks:
+  sau:
+    desc: Run Python tests
+    cmds:
+      - |
+        source ../.venv/bin/activate
+        python3 -m unittest test_sau.py
+    silent: false
+    dir: ./tests
