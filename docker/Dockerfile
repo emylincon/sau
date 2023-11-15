@@ -3,7 +3,7 @@ FROM python:3.8-alpine3.18
 WORKDIR /exporter
 
 COPY . .
-# apk add --update --no-cache --virtual build-base gcc python3-dev musl-dev libffi-dev openssl-dev cargo &&\
+
 RUN pip install --upgrade pip &&\
     apk add --update --no-cache --virtual build-base gcc python3-dev musl-dev libffi-dev openssl-dev &&\
     addgroup -g 1000 exporter && \
