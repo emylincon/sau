@@ -14,3 +14,12 @@ repos:
     rev: v8.2.0
     hooks:
       - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: unittest
+        name: frontend unittest
+        entry: task tests:sau
+        language: system
+        always_run: true
+        pass_filenames: false
