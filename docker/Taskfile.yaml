@@ -31,8 +31,7 @@ tasks:
     desc: "build docker image"
     cmds:
       - |
-        commit=$(git log --format="%H" -n 1)
-        docker build --build-arg="APP_VERSION=dev" --build-arg="APP_COMMIT=${commit}" -t ugwuanyi/aqe:dev -f docker/Dockerfile .
+        docker build --build-arg="VERSION=dev" -t sau:dev -f docker/Dockerfile .
   update:
     desc: update build details
     cmds:
