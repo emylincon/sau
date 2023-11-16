@@ -16,9 +16,17 @@ tasks:
   pypi:
     desc: build & upload application
     cmds:
+      - task: pypi-build
+      - task: pypi-push
+  pypi-build:
+    desc: build
+    cmds:
       - rm -rf dist/
       - rm -rf build/
       - python3 -m build
+  pypi-push:
+    desc: upload application
+    cmds:
       - python3 -m twine upload --repository pypi dist/*
   compose-up:
     desc: "docker compose up"
