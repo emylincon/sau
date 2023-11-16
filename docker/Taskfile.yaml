@@ -37,5 +37,6 @@ tasks:
     cmds:
       - sed -i '' -E "s/BUILD_DATE = .*/BUILD_DATE = \"$(date '+%Y-%m-%d %H:%M')\"/" {{.FILE}}
       - sed -i '' -E "s/VERSION = .*/VERSION = \"{{.IMAGE_VERSION}}\"/" {{.FILE}}
+      - sed -i '' -E "s/version = .*/version = \"{{.IMAGE_VERSION}}\"/" pyproject.toml
     vars:
       FILE: src/sau/__main__.py
