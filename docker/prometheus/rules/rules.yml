@@ -1,27 +1,46 @@
 groups:
-  - name: sample-alerts
+  - name: sau.rules
     rules:
       - alert: EBS volume error
-        expr: sau_ebs_volumes{state="error"} > 1
-        for: 10m
+        expr: sau_ebs_volumes{state="error"} > 0
+        for: 5m
         labels:
-          severity: warning
+          severity: major
+          spark: "true"
           service: EBS
+          volumename: "{{ $labels.name }}"
+          region: "{{ $labels.region }}"
+          volumeid: "{{ $labels.volumeid }}"
+          volumetype: "{{ $labels.volumetype }}"
+          size: "{{ $labels.size }}"
         annotations:
           summary: EBS volume error
+          description: "EBS errored volume name={{ $labels.name }}, id={{ $labels.volumeid }}"
       - alert: EBS volume(s) unattached
-        expr: sau_ebs_volumes{state="unattached"} > 1
-        for: 10m
+        expr: sau_ebs_volumes{state="unattached"} > 0
+        for: 60m
         labels:
-          severity: warning
+          severity: major
+          spark: "true"
           service: EBS
+          volumename: "{{ $labels.name }}"
+          region: "{{ $labels.region }}"
+          volumeid: "{{ $labels.volumeid }}"
+          volumetype: "{{ $labels.volumetype }}"
+          size: "{{ $labels.size }}"
         annotations:
-          summary: EBS volume(s) unattached
+          summary: EBS volume unattached
+          description: "EBS unattached volume name={{ $labels.name }}, id={{ $labels.volumeid }}"
       - alert: AWS Stopped instances
-        expr: sau_ec2_stopped_instances > 1
-        for: 10m
+        expr: sau_ec2_stopped_instances > 0
+        for: 60m
         labels:
-          severity: warning
+          severity: major
+          spark: "true"
           service: EC2
+          instance: "{{ $labels.name }}"
+          region: "{{ $labels.region }}"
+          instanceid: "{{ $labels.instanceid }}"
         annotations:
-          summary: AWS Stopped instances
+          summary: "Instance have been stopped for 1hr {{ $labels.name }}"
+          description: "Ec2 instance has been stopped for 1hr. \nname = {{ $labels.name }}\nregion = {{ $labels.region }} \ninstanceid = {{ $labels.instanceid }}"
