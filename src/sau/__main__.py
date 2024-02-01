@@ -176,11 +176,11 @@ class EC2SAUCollector(Log):
                         tag["Key"]: tag["Value"] for tag in instance.get("Tags", [])
                     }
                     item = {
-                        "name": tags.get("Name"),
+                        "name": tags.get("Name", ""),
                         "region": instance["Placement"]["AvailabilityZone"],
                         "instanceid": instance["InstanceId"],
                         "region": region,
-                        "exclude_from_monitoring": tags.get("exclude_from_monitoring"),
+                        "exclude_from_monitoring": tags.get("exclude_from_monitoring", "False"),
                     }
                     result.append(item)
             client.close()
@@ -238,14 +238,14 @@ class EC2SAUCollector(Log):
                 )
                 states[state] += 1
                 item = {
-                    "name": tags.get("Name"),
+                    "name": tags.get("Name", ""),
                     "availabilityzone": volume["AvailabilityZone"],
                     "size": f'{volume["Size"]}GB',
                     "volumeid": volume["VolumeId"],
                     "volumetype": volume["VolumeType"],
                     "state": state,
                     "region": region,
-                    "exclude_from_monitoring": tags.get("exclude_from_monitoring"),
+                    "exclude_from_monitoring": tags.get("exclude_from_monitoring", 'False'),
                 }
                 result.append(item)
             client.close()
