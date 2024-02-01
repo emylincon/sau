@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sau"
-version = "0.0.7"
+version = "0.0.8"
 authors = [{ name = "Emeka Ugwuanyi", email = "ugwuanyiemy@gmail.com" }]
 description = "The SAU Exporter is a Python-based application designed to collect and expose AWS EC2 and EBS volume metrics for monitoring and observability. It utilizes the Prometheus client library to provide an HTTP endpoint for scraping metrics."
 readme = "README.md"

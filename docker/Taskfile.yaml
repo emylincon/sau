@@ -5,7 +5,7 @@ version: "3"
 vars:
   DOCKER_REGISTRY: ugwuanyi
   IMAGE_NAME: "sau"
-  IMAGE_VERSION: 0.0.6
+  IMAGE_VERSION: 0.0.8
 
 tasks:
   build_template:

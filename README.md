@@ -130,5 +130,12 @@ This project is licensed under the MIT License. Feel free to use, modify, and di
 ## Author
 Created by Emeka Ugwuanyi. For questions or feedback, please contact me.
 
+## Upgrading version
+* enable pr-commit
+```bash
+pre-commit install
+```
+* Increament version in [docker/Taskfile](docker/Taskfile.yaml)
+* Commiting changes with update all the version references
 
 **Happy monitoring!**

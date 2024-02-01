@@ -24,8 +24,8 @@ import platform
 import json
 from multiprocessing_logging import install_mp_handler
 
-VERSION = "0.0.6"
-BUILD_DATE = "2023-11-16 14:03"
+VERSION = "0.0.8"
+BUILD_DATE = "2024-02-01 14:49"
 AUTHOR = "Emeka Ugwuanyi"
 
 
