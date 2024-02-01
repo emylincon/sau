@@ -175,13 +175,14 @@ class EC2SAUCollector(Log):
                     tags = {
                         tag["Key"]: tag["Value"] for tag in instance.get("Tags", [])
                     }
-                    item = {
-                        "name": tags.get("Name"),
-                        "region": instance["Placement"]["AvailabilityZone"],
-                        "instanceid": instance["InstanceId"],
-                        "region": region,
-                    }
-                    result.append(item)
+                    if str(tags.get("exclude_from_monitoring")).lower() != "true":
+                        item = {
+                            "name": tags.get("Name", ""),
+                            "region": instance["Placement"]["AvailabilityZone"],
+                            "instanceid": instance["InstanceId"],
+                            "region": region,
+                        }
+                        result.append(item)
             client.close()
             return {"response": result, "errorcount": 0, "region": region}
 
@@ -236,16 +237,17 @@ class EC2SAUCollector(Log):
                     "unattached" if volume["State"] == "available" else volume["State"]
                 )
                 states[state] += 1
-                item = {
-                    "name": tags.get("Name"),
-                    "availabilityzone": volume["AvailabilityZone"],
-                    "size": f'{volume["Size"]}GB',
-                    "volumeid": volume["VolumeId"],
-                    "volumetype": volume["VolumeType"],
-                    "state": state,
-                    "region": region,
-                }
-                result.append(item)
+                if str(tags.get("exclude_from_monitoring")).lower() != "true":
+                    item = {
+                        "name": tags.get("Name", ""),
+                        "availabilityzone": volume["AvailabilityZone"],
+                        "size": f'{volume["Size"]}GB',
+                        "volumeid": volume["VolumeId"],
+                        "volumetype": volume["VolumeType"],
+                        "state": state,
+                        "region": region,
+                    }
+                    result.append(item)
             client.close()
             response = {"states": states, "result": result}
             return {"response": response, "errorcount": 0, "region": region}

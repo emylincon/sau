@@ -13,6 +13,7 @@ The SaU Exporter is a Python-based application designed to collect and expose AW
 * **EC2 Metrics**: Collects information about stopped EC2 instances in different AWS regions.
 * **EBS Volume Metrics**: Retrieves data on unattached/errored EBS volumes, including volume state, type, size, and region.
 * **Prometheus Integration**: Exposes metrics in the Prometheus format, making it compatible with Prometheus monitoring systems.
+* **Exclude Tagging**: Instances and/or volumes tagged with the key "exclude_from_monitoring" with the value True will be omitted as metrics.
 
 ## Installing via pip
 Pip package is available [here](https://pypi.org/project/sau/)
