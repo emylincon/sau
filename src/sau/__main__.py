@@ -180,6 +180,7 @@ class EC2SAUCollector(Log):
                         "region": instance["Placement"]["AvailabilityZone"],
                         "instanceid": instance["InstanceId"],
                         "region": region,
+                        "exclude_from_monitoring": tags.get("exclude_from_monitoring"),
                     }
                     result.append(item)
             client.close()
@@ -244,6 +245,7 @@ class EC2SAUCollector(Log):
                     "volumetype": volume["VolumeType"],
                     "state": state,
                     "region": region,
+                    "exclude_from_monitoring": tags.get("exclude_from_monitoring"),
                 }
                 result.append(item)
             client.close()
