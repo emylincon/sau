@@ -24,8 +24,8 @@ import platform
 import json
 from multiprocessing_logging import install_mp_handler
 
-VERSION = "0.0.8"
-BUILD_DATE = "2024-02-01 14:49"
+VERSION = "0.0.9"
+BUILD_DATE = "2024-10-25 15:23"
 AUTHOR = "Emeka Ugwuanyi"
 
 
@@ -121,7 +121,12 @@ class EC2SAUCollector(Log):
     """
 
     def __init__(
-        self, regions: list, level: str = "info", path: str = ".", rentention: int = 7
+        self,
+        exclude_tags: dict,
+        regions: list,
+        level: str = "info",
+        path: str = ".",
+        rentention: int = 7,
     ) -> None:
         """
         Initializes a new EC2SAUCollector instance.
@@ -140,6 +145,7 @@ class EC2SAUCollector(Log):
         Log.__init__(self, level=level, path=path, rentention=rentention)
         self.regions = regions
         self.errors = 0
+        self.exclude_tags = exclude_tags
 
     def get_stopped_ec2(self, region: str) -> dict:
         """
@@ -176,13 +182,22 @@ class EC2SAUCollector(Log):
                         tag["Key"]: tag["Value"] for tag in instance.get("Tags", [])
                     }
                     if str(tags.get("exclude_from_monitoring")).lower() != "true":
-                        item = {
-                            "name": tags.get("Name", ""),
-                            "region": instance["Placement"]["AvailabilityZone"],
-                            "instanceid": instance["InstanceId"],
-                            "region": region,
-                        }
-                        result.append(item)
+                        skip = False
+                        for key, value in self.exclude_tags.items():
+                            if tags.get(key) in value:
+                                skip = True
+                                break
+                        if not skip:
+                            item = {
+                                "name": tags.get("Name", ""),
+                                "region": instance["Placement"]["AvailabilityZone"],
+                                "instanceid": instance["InstanceId"],
+                                "region": region,
+                            }
+                            tags = {
+                                f"tag_{k}".lower(): v.lower() for k, v in tags.items()
+                            }
+                            result.append({**item, **tags})
             client.close()
             return {"response": result, "errorcount": 0, "region": region}
 
@@ -238,16 +253,24 @@ class EC2SAUCollector(Log):
                 )
                 states[state] += 1
                 if str(tags.get("exclude_from_monitoring")).lower() != "true":
-                    item = {
-                        "name": tags.get("Name", ""),
-                        "availabilityzone": volume["AvailabilityZone"],
-                        "size": f'{volume["Size"]}GB',
-                        "volumeid": volume["VolumeId"],
-                        "volumetype": volume["VolumeType"],
-                        "state": state,
-                        "region": region,
-                    }
-                    result.append(item)
+                    skip = False
+                    for key, value in self.exclude_tags.items():
+                        if tags.get(key) in value:
+                            skip = True
+                            break
+                    if not skip:
+                        item = {
+                            "name": tags.get("Name", ""),
+                            "availabilityzone": volume["AvailabilityZone"],
+                            "size": f'{volume["Size"]}GB',
+                            "volumeid": volume["VolumeId"],
+                            "volumetype": volume["VolumeType"],
+                            "state": state,
+                            "region": region,
+                        }
+                        tags = {f"tag_{k}".lower(): v.lower() for k, v in tags.items()}
+                        result.append({**item, **tags})
+
             client.close()
             response = {"states": states, "result": result}
             return {"response": response, "errorcount": 0, "region": region}
@@ -489,6 +512,7 @@ class Util(Log):
             config["exporter_port"] = 9191
         Util.default_logging.update(config.get("logging", {}))
         config["logging"] = Util.default_logging
+        config["exclude_tags"] = config.get("exclude_tags", {})
         return config
 
     def version() -> str:
@@ -555,6 +579,7 @@ if __name__ == "__main__":
             path=config["logging"]["directory"],
             rentention=config["logging"]["retention"],
             level=config["logging"]["level"],
+            exclude_tags=config["exclude_tags"],
         )
     )
 

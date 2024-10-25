@@ -24,7 +24,9 @@ class TestApp(unittest.TestCase):
         cls.log = Log()
         cls.util = Util()
         cls.regions = ["us-east-1", "us-west-1"]
-        cls.collector = EC2SAUCollector(regions=cls.regions)
+        cls.collector = EC2SAUCollector(
+            regions=cls.regions, exclude_tags={"env": ["dev"]}
+        )
 
     def test_log(self):
         self.assertEqual(self.log.level, "info")
