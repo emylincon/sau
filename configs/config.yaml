@@ -14,3 +14,10 @@ logging:
   directory: "."
   # log level (debug, info, warn, error). Defaults to info
   level: info
+
+# Optional: tags to exclude from monitoring
+exclude_tags:
+  inv_environment_id:
+    - development
+  inv_cluster_type:
+    - hansen
