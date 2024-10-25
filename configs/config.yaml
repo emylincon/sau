@@ -19,3 +19,5 @@ logging:
 exclude_tags:
   inv_environment_id:
     - development
+  inv_cluster_type:
+    - hansen

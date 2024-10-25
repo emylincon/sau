@@ -68,7 +68,10 @@ class TestApp(unittest.TestCase):
             "logging": {"retention": 7, "directory": ".", "level": "info"},
             "exporter_port": 9191,
             "regions": ["eu-central-1", "eu-west-1"],
-            "exclude_tags": {"inv_environment_id": ["development"]},
+            "exclude_tags": {
+                "inv_environment_id": ["development"],
+                "inv_cluster_type": ["hansen"],
+            },
         }
         filepath = os.path.dirname(os.path.abspath(__file__))
         config_file = f"{filepath}/../configs/config.yaml"
