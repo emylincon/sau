@@ -12,7 +12,7 @@ import sys
 import os
 import unittest
 import datetime
-from typing import Any
+from typing import Any, List
 
 # caution: path[0] is reserved for script path (or '' in REPL)
 sys.path.insert(1, f"{os.path.dirname(os.path.abspath(__file__))}/../src/")
@@ -25,7 +25,7 @@ class MockClient:
         self.module = module
         self.region_name = region_name
 
-    def describe_instances(self, Filters: list[dict]) -> dict:
+    def describe_instances(self, Filters: List[dict]) -> dict:
         return {
             "Reservations": [
                 {
@@ -244,7 +244,7 @@ class MockClient:
             },
         }
 
-    def describe_volumes(self, Filters: list[dict]) -> dict:
+    def describe_volumes(self, Filters: List[dict]) -> dict:
         return {
             "Volumes": [
                 {
@@ -459,7 +459,6 @@ class TestApp(unittest.TestCase):
             "stopped_instances_count": {region: 0 for region in self.regions},
         }
         response = self.collector.get_instance_metrics()
-        # print(response)
         self.assertDictEqual(
             d1={
                 "stopped_instances": [
