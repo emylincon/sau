@@ -23,9 +23,10 @@ import sys
 import platform
 import json
 from multiprocessing_logging import install_mp_handler
+from typing import Any, Callable
 
 VERSION = "0.0.9"
-BUILD_DATE = "2024-10-25 15:29"
+BUILD_DATE = "2024-10-28 08:02"
 AUTHOR = "Emeka Ugwuanyi"
 
 
@@ -87,13 +88,13 @@ class Log:
         formatter = logging.Formatter(format)
 
         stdout_handler = logging.StreamHandler(sys.stdout)
-        stdout_handler.setLevel(logging.DEBUG)
+        stdout_handler.setLevel(loglevel)
         stdout_handler.setFormatter(formatter)
 
         file_handler = handlers.TimedRotatingFileHandler(
             logfile, when="midnight", backupCount=self.retention
         )
-        file_handler.setLevel(logging.DEBUG)
+        file_handler.setLevel(loglevel)
         file_handler.setFormatter(formatter)
 
         logging.basicConfig(
@@ -124,6 +125,7 @@ class EC2SAUCollector(Log):
         self,
         exclude_tags: dict,
         regions: list,
+        client_getter: Callable[[str, str], Any],
         level: str = "info",
         path: str = ".",
         rentention: int = 7,
@@ -146,6 +148,18 @@ class EC2SAUCollector(Log):
         self.regions = regions
         self.errors = 0
         self.exclude_tags = exclude_tags
+        self.get_client = client_getter
+
+    def is_excluded(self, tags: dict[str, str]) -> bool:
+        skip = False
+        for key, value in self.exclude_tags.items():
+            if tags.get(key, "").lower() in {f"{item}".lower(): True for item in value}:
+                skip = True
+                break
+        return skip
+
+    def is_not_excluded(self, tags: dict[str, str]) -> bool:
+        return not self.is_excluded(tags=tags)
 
     def get_stopped_ec2(self, region: str) -> dict:
         """
@@ -171,7 +185,7 @@ class EC2SAUCollector(Log):
         """
         self.setlogger()
         logging.debug("get_stopped_ec2 for region %s", region)
-        client = boto3.client("ec2", region_name=region)
+        client = self.get_client("ec2", region_name=region)
         result = []
         filter = [{"Name": "instance-state-name", "Values": ["stopped"]}]
         try:
@@ -181,23 +195,15 @@ class EC2SAUCollector(Log):
                     tags = {
                         tag["Key"]: tag["Value"] for tag in instance.get("Tags", [])
                     }
-                    if str(tags.get("exclude_from_monitoring")).lower() != "true":
-                        skip = False
-                        for key, value in self.exclude_tags.items():
-                            if tags.get(key) in value:
-                                skip = True
-                                break
-                        if not skip:
-                            item = {
-                                "name": tags.get("Name", ""),
-                                "region": instance["Placement"]["AvailabilityZone"],
-                                "instanceid": instance["InstanceId"],
-                                "region": region,
-                            }
-                            tags = {
-                                f"tag_{k}".lower(): v.lower() for k, v in tags.items()
-                            }
-                            result.append({**item, **tags})
+                    if self.is_not_excluded(tags=tags):
+                        item = {
+                            "name": tags.get("Name", ""),
+                            "region": instance["Placement"]["AvailabilityZone"],
+                            "instanceid": instance["InstanceId"],
+                            "region": region,
+                        }
+                        tags = {f"tag_{k}".lower(): v.lower() for k, v in tags.items()}
+                        result.append({**item, **tags})
             client.close()
             return {"response": result, "errorcount": 0, "region": region}
 
@@ -240,36 +246,33 @@ class EC2SAUCollector(Log):
 
         self.setlogger()
         logging.debug("get_unattached_volumes for region %s", region)
-        client = boto3.client("ec2", region_name=region)
+        client = self.get_client("ec2", region_name=region)
         result = []
         states = {"unattached": 0, "error": 0}
         filter = [{"Name": "status", "Values": ["available", "error"]}]
         try:
             response = client.describe_volumes(Filters=filter)
             for volume in response["Volumes"]:
-                tags = {tag["Key"]: tag["Value"] for tag in volume.get("Tags", [])}
+                tags: dict[str, str] = {
+                    tag["Key"]: tag["Value"] for tag in volume.get("Tags", [])
+                }
                 state = (
                     "unattached" if volume["State"] == "available" else volume["State"]
                 )
                 states[state] += 1
-                if str(tags.get("exclude_from_monitoring")).lower() != "true":
-                    skip = False
-                    for key, value in self.exclude_tags.items():
-                        if tags.get(key) in value:
-                            skip = True
-                            break
-                    if not skip:
-                        item = {
-                            "name": tags.get("Name", ""),
-                            "availabilityzone": volume["AvailabilityZone"],
-                            "size": f'{volume["Size"]}GB',
-                            "volumeid": volume["VolumeId"],
-                            "volumetype": volume["VolumeType"],
-                            "state": state,
-                            "region": region,
-                        }
-                        tags = {f"tag_{k}".lower(): v.lower() for k, v in tags.items()}
-                        result.append({**item, **tags})
+
+                if self.is_not_excluded(tags=tags):
+                    item = {
+                        "name": tags.get("Name", ""),
+                        "availabilityzone": volume["AvailabilityZone"],
+                        "size": f'{volume["Size"]}GB',
+                        "volumeid": volume["VolumeId"],
+                        "volumetype": volume["VolumeType"],
+                        "state": state,
+                        "region": region,
+                    }
+                    tags = {f"tag_{k}".lower(): v.lower() for k, v in tags.items()}
+                    result.append({**item, **tags})
 
             client.close()
             response = {"states": states, "result": result}
@@ -487,6 +490,7 @@ class Util(Log):
             logging.error(f"error reading file {filename}: {error}")
             return {}
 
+    @staticmethod
     def get_config(filename: str) -> dict:
         """
         Retrieves the configuration from a YAML file and performs necessary checks and adjustments.
@@ -515,6 +519,7 @@ class Util(Log):
         config["exclude_tags"] = config.get("exclude_tags", {})
         return config
 
+    @staticmethod
     def version() -> str:
         """
         Retrieves version information about the application.
@@ -531,6 +536,10 @@ class Util(Log):
             "OSPlatform": platform.platform(),
         }
         return json.dumps(info, sort_keys=True)
+
+    @staticmethod
+    def get_aws_client(module: str, region_name: str) -> Any:
+        return boto3.client(module, region_name=region_name)
 
 
 if __name__ == "__main__":
@@ -580,6 +589,7 @@ if __name__ == "__main__":
             rentention=config["logging"]["retention"],
             level=config["logging"]["level"],
             exclude_tags=config["exclude_tags"],
+            client_getter=Util.get_aws_client,
         )
     )
 

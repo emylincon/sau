@@ -7,6 +7,6 @@ tasks:
     desc: Run Python tests
     cmds:
       - |
-        ../.venv/bin/python3 -m unittest test_sau.py
+        ../.venv/bin/python3 -X tracemalloc=25 -m unittest test_sau.py
     silent: false
     dir: ./tests
