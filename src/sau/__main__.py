@@ -25,11 +25,12 @@ import json
 from multiprocessing_logging import install_mp_handler
 
 VERSION = "0.0.9"
-BUILD_DATE = "2024-10-25 15:29"
+BUILD_DATE = "2024-10-28 18:30"
 AUTHOR = "Emeka Ugwuanyi"
 
 
 class Log:
+    file_handler = None
     """
     A class for configuring and managing logging in the SAU Exporter.
 
@@ -44,7 +45,7 @@ class Log:
     """
 
     def __init__(
-        self, level: str = "info", path: str = ".", rentention: int = 7
+        self, level: str = "info", path: str = ".", retention: int = 7
     ) -> None:
         """
         Initializes a new Log instance.
@@ -61,7 +62,27 @@ class Log:
         """
         self.level = level
         self.path = path
-        self.retention = rentention
+        self.retention = retention
+        self.levels: dict = {
+            "debug": logging.DEBUG,
+            "info": logging.INFO,
+            "warn": logging.WARNING,
+            "error": logging.ERROR,
+        }
+
+        self.log_level = self.levels.get(self.level.lower(), logging.INFO)
+        self.format = 'time=%(asctime)s pid=%(process)d level=%(levelname)-2s message="%(message)s"'
+
+    def create_file_handler(self):
+        if Log.file_handler is None:
+            logfile = f"{self.path}/sau_exporter.log"
+            file_handler = handlers.TimedRotatingFileHandler(
+                logfile, when="midnight", backupCount=self.retention
+            )
+            file_handler.setLevel(self.log_level)
+            formatter = logging.Formatter(self.format)
+            file_handler.setFormatter(formatter)
+            Log.file_handler = file_handler
 
     def setlogger(self) -> None:
         """
@@ -74,32 +95,18 @@ class Log:
         None
 
         """
-        levels: dict = {
-            "debug": logging.DEBUG,
-            "info": logging.INFO,
-            "warn": logging.WARNING,
-            "error": logging.ERROR,
-        }
-        logfile = f"{self.path}/sau_exporter.log"
-        # logger = logging.getLogger("sau_exporter")
-        loglevel = levels.get(self.level.lower(), logging.INFO)
-        format = 'time=%(asctime)s pid=%(process)d level=%(levelname)-2s message="%(message)s"'
-        formatter = logging.Formatter(format)
 
+        formatter = logging.Formatter(self.format)
         stdout_handler = logging.StreamHandler(sys.stdout)
-        stdout_handler.setLevel(logging.DEBUG)
+        stdout_handler.setLevel(self.log_level)
         stdout_handler.setFormatter(formatter)
 
-        file_handler = handlers.TimedRotatingFileHandler(
-            logfile, when="midnight", backupCount=self.retention
-        )
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(formatter)
+        self.create_file_handler()
 
         logging.basicConfig(
-            format='time=%(asctime)s pid=%(process)d level=%(levelname)-2s message="%(message)s"',
-            level=loglevel,
-            handlers=[file_handler, stdout_handler],
+            format=self.format,
+            level=self.log_level,
+            handlers=[Log.file_handler, stdout_handler],
         )
 
 
@@ -126,7 +133,7 @@ class EC2SAUCollector(Log):
         regions: list,
         level: str = "info",
         path: str = ".",
-        rentention: int = 7,
+        retention: int = 7,
     ) -> None:
         """
         Initializes a new EC2SAUCollector instance.
@@ -142,7 +149,7 @@ class EC2SAUCollector(Log):
         None
 
         """
-        Log.__init__(self, level=level, path=path, rentention=rentention)
+        Log.__init__(self, level=level, path=path, retention=retention)
         self.regions = regions
         self.errors = 0
         self.exclude_tags = exclude_tags
@@ -420,7 +427,7 @@ class Util(Log):
         default_logging (dict): Default logging configuration.
 
     Methods:
-        __init__(self, level: str = "info", path: str = ".", rentention: int = 7) -> None:
+        __init__(self, level: str = "info", path: str = ".", retention: int = 7) -> None:
             Initializes the Util class.
 
         loop_until_interrupt() -> None:
@@ -441,9 +448,9 @@ class Util(Log):
     default_logging = {"retention": 7, "directory": ".", "level": "info"}
 
     def __init__(
-        self, level: str = "info", path: str = ".", rentention: int = 7
+        self, level: str = "info", path: str = ".", retention: int = 7
     ) -> None:
-        Log.__init__(self, level=level, path=path, rentention=rentention)
+        Log.__init__(self, level=level, path=path, retention=retention)
 
     @staticmethod
     def loop_until_interrupt() -> None:
@@ -558,7 +565,7 @@ if __name__ == "__main__":
 
     util = Util(
         path=config["logging"]["directory"],
-        rentention=config["logging"]["retention"],
+        retention=config["logging"]["retention"],
         level=config["logging"]["level"],
     )
     util.setlogger()
@@ -577,7 +584,7 @@ if __name__ == "__main__":
         EC2SAUCollector(
             regions=config["regions"],
             path=config["logging"]["directory"],
-            rentention=config["logging"]["retention"],
+            retention=config["logging"]["retention"],
             level=config["logging"]["level"],
             exclude_tags=config["exclude_tags"],
         )
