@@ -23,10 +23,10 @@ import sys
 import platform
 import json
 from multiprocessing_logging import install_mp_handler
-from typing import Any, Callable
+from typing import Any, Callable, Dict
 
 VERSION = "0.0.9"
-BUILD_DATE = "2024-10-28 18:36"
+BUILD_DATE = "2024-10-28 18:39"
 AUTHOR = "Emeka Ugwuanyi"
 
 
@@ -157,7 +157,7 @@ class EC2SAUCollector(Log):
         self.exclude_tags = exclude_tags
         self.get_client = client_getter
 
-    def is_excluded(self, tags: dict[str, str]) -> bool:
+    def is_excluded(self, tags: Dict[str, str]) -> bool:
         skip = False
         for key, value in self.exclude_tags.items():
             if tags.get(key, "").lower() in {f"{item}".lower(): True for item in value}:
@@ -165,7 +165,7 @@ class EC2SAUCollector(Log):
                 break
         return skip
 
-    def is_not_excluded(self, tags: dict[str, str]) -> bool:
+    def is_not_excluded(self, tags: Dict[str, str]) -> bool:
         return not self.is_excluded(tags=tags)
 
     def get_stopped_ec2(self, region: str) -> dict:
@@ -199,7 +199,7 @@ class EC2SAUCollector(Log):
             response = client.describe_instances(Filters=filter)
             for reserve in response["Reservations"]:
                 for instance in reserve["Instances"]:
-                    tags = {
+                    tags: Dict[str, str] = {
                         tag["Key"]: tag["Value"] for tag in instance.get("Tags", [])
                     }
                     if self.is_not_excluded(tags=tags):
@@ -260,7 +260,7 @@ class EC2SAUCollector(Log):
         try:
             response = client.describe_volumes(Filters=filter)
             for volume in response["Volumes"]:
-                tags: dict[str, str] = {
+                tags: Dict[str, str] = {
                     tag["Key"]: tag["Value"] for tag in volume.get("Tags", [])
                 }
                 state = (
