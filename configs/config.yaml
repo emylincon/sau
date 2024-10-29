@@ -15,7 +15,8 @@ logging:
   # log level (debug, info, warn, error). Defaults to info
   level: info
 
-# Optional: tags to exclude from monitoring
+# Optional: Tags to exclude from monitoring
+#           The tag values are case insensitive
 exclude_tags:
   inv_environment_id:
     - development
