@@ -7,9 +7,10 @@ on:
 
 env:
   IMAGE_NAME: ugwuanyi/sau
+  GHRC_IMG_NAME: ghcr.io/emylincon/sau
 
 jobs:
-  buildDockerImage:
+  push-dockerhub-image-tag:
     name: Build docker image
     runs-on: ubuntu-latest
     steps:
@@ -27,11 +28,26 @@ jobs:
       - name: Build and Publish docker image to dockerhub
         run: docker buildx build --build-arg="APP_VERSION=${{ github.ref_name }}" --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:${{ github.ref_name }} -f docker/Dockerfile --push .
 
+  push-dockerhub-image-latest:
+    name: Build docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to DockerHub Registry
+        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
       - name: Build and Publish docker image for tags
         if: github.ref_type == 'tag'
         run: docker buildx build --build-arg="APP_VERSION=${{ github.ref_name }}" --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:latest -f docker/Dockerfile --push .
 
-  push-ghrc-image:
+  push-ghrc-image-tag:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -46,8 +62,22 @@ jobs:
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build and Publish image to ghcr.io
-        run: docker buildx build --build-arg="APP_VERSION=${{ github.ref_name }}" --platform linux/amd64,linux/arm64,linux/arm/v7 --label "org.opencontainers.image.source=https://github.com/emylincon/sau" -t ${{ env.IMAGE_NAME }}:${{ github.ref_name }} -f docker/Dockerfile --push .
+        run: docker buildx build --build-arg="APP_VERSION=${{ github.ref_name }}" --platform linux/amd64,linux/arm64,linux/arm/v7 --label "org.opencontainers.image.source=https://github.com/emylincon/sau" -t ${{ env.GHRC_IMG_NAME }}:${{ github.ref_name }} -f docker/Dockerfile --push .
+
+  push-ghrc-image-latest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to DockerHub Registry
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build and Publish docker image for tags to ghcr.io
         if: github.ref_type == 'tag'
-        run: docker buildx build --build-arg="APP_VERSION=${{ github.ref_name }}" --platform linux/amd64,linux/arm64,linux/arm/v7 --label "org.opencontainers.image.source=https://github.com/emylincon/sau" -t ${{ env.IMAGE_NAME }}:latest -f docker/Dockerfile --push .
+        run: docker buildx build --build-arg="APP_VERSION=${{ github.ref_name }}" --platform linux/amd64,linux/arm64,linux/arm/v7 --label "org.opencontainers.image.source=https://github.com/emylincon/sau" -t ${{ env.GHRC_IMG_NAME }}:latest -f docker/Dockerfile --push .
