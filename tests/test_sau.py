@@ -378,6 +378,7 @@ class TestApp(unittest.TestCase):
         self.assertListEqual(list1=self.regions, list2=self.collector.regions)
         region = self.regions[0]
         response = self.collector.get_stopped_ec2(region=region)["response"]
+        # test stopped ec2 logic
         self.assertListEqual(
             list1=[
                 {
@@ -397,12 +398,8 @@ class TestApp(unittest.TestCase):
             ],
             list2=response,
         )
-        d1 = {
-            "response": {"states": {"unattached": 0, "error": 0}, "result": []},
-            "errorcount": 1,
-            "region": region,
-        }
         response = self.collector.get_unattached_volumes(region=region)
+        # test unattached volumes
         self.assertDictEqual(
             d1={
                 "response": {
@@ -450,14 +447,7 @@ class TestApp(unittest.TestCase):
             msg="Unattached volumes dont match",
         )
 
-        d1 = {
-            "stopped_instances": [],
-            "volumes": [],
-            "volume_states": {
-                region: {"unattached": 0, "error": 0} for region in self.regions
-            },
-            "stopped_instances_count": {region: 0 for region in self.regions},
-        }
+        # test instance metrics
         response = self.collector.get_instance_metrics()
         self.assertDictEqual(
             d1={
@@ -567,7 +557,34 @@ class TestApp(unittest.TestCase):
             },
             d2=response,
         )
+
+        # test doc
         self.assertNotEqual(first=self.collector.__doc__, second="")
+
+
+    def test_is_excluded(self):
+        test_args = [
+            {"tags": {"inv_environment_id": "development"},
+             "expected": False
+            },
+            {"tags": {"env": "dev"},
+             "expected": True
+            }
+        ]
+        for test_arg in test_args:
+            response = self.collector.is_excluded(tags=test_arg["tags"])
+            self.assertEqual(
+                first=response,
+                second=test_arg["expected"],
+                msg=f"{test_arg}, response is not expected"
+            )
+            response = self.collector.is_not_excluded(tags=test_arg["tags"])
+            self.assertEqual(
+                first=response,
+                second=not test_arg["expected"],
+                msg=f"{test_arg}, response is not expected"
+            )
+
 
     def test_util(self):
         self.assertEqual(first=self.util.default_exporter_port, second=9191)
