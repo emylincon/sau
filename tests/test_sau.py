@@ -592,7 +592,7 @@ class TestApp(unittest.TestCase):
         self.assertEqual(self.util.path, ".")
         self.assertEqual(self.util.retention, 7)
         result = {
-            "logging": {"retention": 7, "directory": ".", "level": "info"},
+            "logging": {"retention": 7, "directory": ".", "level": "info", "handler": "both"},
             "exporter_port": 9191,
             "regions": ["eu-central-1", "eu-west-1"],
             "exclude_tags": {
