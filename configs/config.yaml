@@ -14,6 +14,11 @@ logging:
   directory: "."
   # log level (debug, info, warn, error). Defaults to info
   level: info
+  # which log handler to use (stdout, file, both). Defaults to both.
+  # stdout will only log to stdout
+  # file will only log to the specified file
+  # both will log to both stdout and file
+  handler: both
 
 # Optional: Tags to exclude from monitoring
 #           The tag values are case insensitive

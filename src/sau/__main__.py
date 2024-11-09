@@ -26,7 +26,7 @@ from multiprocessing_logging import install_mp_handler
 from typing import Any, Callable, Dict
 
 VERSION = "0.1.0"
-BUILD_DATE = "2024-11-09 16:27"
+BUILD_DATE = "2024-11-09 17:08"
 AUTHOR = "Emeka Ugwuanyi"
 
 
@@ -46,7 +46,7 @@ class Log:
     """
 
     def __init__(
-        self, level: str = "info", path: str = ".", retention: int = 7
+        self, level: str = "info", path: str = ".", retention: int = 7, handler: str = "both",
     ) -> None:
         """
         Initializes a new Log instance.
@@ -70,6 +70,7 @@ class Log:
             "warn": logging.WARNING,
             "error": logging.ERROR,
         }
+        self.handler = handler
 
         self.log_level = self.levels.get(self.level.lower(), logging.INFO)
         self.format = 'time=%(asctime)s pid=%(process)d level=%(levelname)-2s message="%(message)s"'
@@ -96,18 +97,26 @@ class Log:
         None
 
         """
+        if self.handler not in {"both", "stdout", "file"}:
+            raise ValueError("logging.handler must be either 'file', 'both' or 'stdout'.")
 
-        formatter = logging.Formatter(self.format)
-        stdout_handler = logging.StreamHandler(sys.stdout)
-        stdout_handler.setLevel(self.log_level)
-        stdout_handler.setFormatter(formatter)
+        handlers = []
 
-        self.create_file_handler()
+        if self.handler in {"both", "stdout"}:
+            formatter = logging.Formatter(self.format)
+            stdout_handler = logging.StreamHandler(sys.stdout)
+            stdout_handler.setLevel(self.log_level)
+            stdout_handler.setFormatter(formatter)
+            handlers.append(stdout_handler)
+
+        if self.handler in {"both", "file"}:
+            self.create_file_handler()
+            handlers.append(Log.file_handler)
 
         logging.basicConfig(
             format=self.format,
             level=self.log_level,
-            handlers=[Log.file_handler, stdout_handler],
+            handlers=handlers,
         )
 
 
@@ -136,6 +145,7 @@ class EC2SAUCollector(Log):
         level: str = "info",
         path: str = ".",
         retention: int = 7,
+        handler: str = "both",
     ) -> None:
         """
         Initializes a new EC2SAUCollector instance.
@@ -151,7 +161,7 @@ class EC2SAUCollector(Log):
         None
 
         """
-        Log.__init__(self, level=level, path=path, retention=retention)
+        Log.__init__(self, level=level, path=path, retention=retention, handler=handler)
         self.regions = regions
         self.errors = 0
         self.exclude_tags = exclude_tags
@@ -448,12 +458,12 @@ class Util(Log):
     """
 
     default_exporter_port = 9191
-    default_logging = {"retention": 7, "directory": ".", "level": "info"}
+    default_logging = {"retention": 7, "directory": ".", "level": "info", "handler": "both"}
 
     def __init__(
-        self, level: str = "info", path: str = ".", retention: int = 7
+        self, level: str = "info", path: str = ".", retention: int = 7, handler: str = "both",
     ) -> None:
-        Log.__init__(self, level=level, path=path, retention=retention)
+        Log.__init__(self, level=level, path=path, retention=retention, handler=handler)
 
     @staticmethod
     def loop_until_interrupt() -> None:
@@ -576,6 +586,7 @@ if __name__ == "__main__":
         path=config["logging"]["directory"],
         retention=config["logging"]["retention"],
         level=config["logging"]["level"],
+        handler=config["logging"].get("handler", "both"),
     )
     util.setlogger()
 
@@ -588,6 +599,8 @@ if __name__ == "__main__":
 
     logging.info(f"config: {config}")
 
+
+
     # Add EC2SAUCollector to prometheus registry
     REGISTRY.register(
         EC2SAUCollector(
@@ -595,6 +608,7 @@ if __name__ == "__main__":
             path=config["logging"]["directory"],
             retention=config["logging"]["retention"],
             level=config["logging"]["level"],
+            handler=config["logging"].get("handler", "both"),
             exclude_tags=config["exclude_tags"],
             client_getter=Util.get_aws_client,
         )
