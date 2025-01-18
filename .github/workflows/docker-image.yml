@@ -41,7 +41,7 @@ jobs:
           password: ${{  secrets.DOCKERHUB_PASSWORD }}
       - name: Build and push
         uses: docker/build-push-action@v6
-        if: github.ref_type != 'tag' && matrix.image_tag == 'latest'
+        if: ${{ ! (github.ref_type == 'branch' && matrix.image_tag == 'latest') }}
         with:
           push: true
           tags: "${{ matrix.image }}:${{ matrix.image_tag }}"
