@@ -4,20 +4,19 @@ on:
   push:
     branches: ["main"]
     tags: ["*"]
+  pull_request:
+    branches: ["main"]
 
 jobs:
   docker_matrix:
     strategy:
       matrix:
-        image_tag: ["${{ github.ref_name }}", "latest"]
-        registry: ["docker.io", "ghcr.io"]
+        image_tag: ["latest"]
+        registry: ["docker.io"]
         include:
           - registry: docker.io
             username: ugwuanyi
-            image: ugwuanyi/sau
-          - registry: ghcr.io
-            username: emylincon
-            image: ghcr.io/emylincon/sau
+            image: ugwuanyi/apps-greet
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,7 +40,6 @@ jobs:
           password: ${{  secrets.DOCKERHUB_PASSWORD }}
       - name: Build and push
         uses: docker/build-push-action@v6
-        if: ${{ ! (github.ref_type == 'branch' && matrix.image_tag == 'latest') }}
         with:
           push: true
           tags: "${{ matrix.image }}:${{ matrix.image_tag }}"
@@ -49,5 +47,7 @@ jobs:
           file: docker/Dockerfile
           labels: "org.opencontainers.image.source=https://github.com/emylincon/sau"
           platforms: linux/amd64,linux/arm64
-          build-args: APP_VERSION=${{ github.ref_name }}
+          build-args: |
+            name=james
+            age=11
           no-cache: true
