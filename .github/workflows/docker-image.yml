@@ -47,5 +47,5 @@ jobs:
           file: docker/Dockerfile
           labels: "org.opencontainers.image.source=https://github.com/emylincon/sau"
           platforms: linux/amd64,linux/arm64
-          build-args: ["name=james", "age=11"]
+          build-args: name=james,age=11
           no-cache: true
