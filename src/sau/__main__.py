@@ -26,7 +26,7 @@ from multiprocessing_logging import install_mp_handler
 from typing import Any, Callable, Dict
 
 VERSION = "0.1.0"
-BUILD_DATE = "2024-11-09 17:27"
+BUILD_DATE = "2025-02-16 21:27"
 AUTHOR = "Emeka Ugwuanyi"
 
 
