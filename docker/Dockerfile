@@ -1,4 +1,4 @@
-FROM python:3.8-alpine3.18 as builder
+FROM python:3.12-alpine3.21 as builder
 
 WORKDIR /exporter
 
@@ -8,7 +8,7 @@ RUN apk add --update --no-cache --virtual build-base gcc python3-dev musl-dev li
     pip install --upgrade pip &&\
     pip install --no-cache-dir --target=/exporter/requirements -r requirements.txt
 
-FROM python:3.8-alpine3.18
+FROM python:3.12-alpine3.21
 
 ARG VERSION="0.0.0"
 
@@ -16,7 +16,7 @@ ARG MAIN_FILE="src/sau/__main__.py"
 
 WORKDIR /exporter
 
-COPY --from=builder /exporter/requirements /usr/local/lib/python3.8/site-packages/
+COPY --from=builder /exporter/requirements /usr/local/lib/python3.12/site-packages/
 
 COPY . .
 
