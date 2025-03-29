@@ -4,7 +4,7 @@
 [![GitHub](https://img.shields.io/github/license/emylincon/sau?style=for-the-badge)](https://github.com/emylincon/sau/blob/main/LICENSE)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white&style=for-the-badge)](https://github.com/pre-commit/pre-commit)
 ![GitHub top language](https://img.shields.io/github/languages/top/emylincon/sau?style=for-the-badge)
-
+[![Docker Pulls](https://img.shields.io/docker/pulls/ugwuanyi/sau?style=for-the-badge)](https://hub.docker.com/repository/docker/ugwuanyi/sau/general)
 ## Overview
 
 The SaU Exporter is a Python-based application designed to collect and expose AWS EC2 and EBS volume metrics for monitoring and observability. It utilizes the Prometheus client library to provide an HTTP endpoint for scraping metrics.
