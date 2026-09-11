@@ -648,9 +648,9 @@ class TestApp(unittest.TestCase):
         invalid in the Prometheus text exposition format and causes
         Prometheus 3.x to fail the scrape with a hard parse error.
 
-        This test currently FAILS, confirming the bug: the exporter emits
-        label names that do not match the legacy Prometheus label name
-        grammar `[a-zA-Z_][a-zA-Z0-9_]*`.
+        With prometheus-client's default `underscores` escaping scheme
+        (>=0.20), dotted/slashed tag keys are sanitised to `_` before being
+        emitted, so this now passes.
         """
         collector = EC2SAUCollector(
             regions=["us-east-1"],
@@ -661,11 +661,11 @@ class TestApp(unittest.TestCase):
         registry.register(collector)
         exposition = generate_latest(registry).decode()
 
-        # Sanity check: confirm our fixture actually produced the raw,
-        # dotted/slashed label name described in the ticket.
-        self.assertIn("tag_ebs.csi.aws.com/cluster=", exposition)
+        # Sanity check: confirm our fixture's tag keys were sanitised
+        # (dots/slashes -> underscores) rather than silently dropped.
+        self.assertIn("tag_ebs_csi_aws_com_cluster=", exposition)
         self.assertIn(
-            "tag_kubernetes.io/created-for/pvc/name=", exposition
+            "tag_kubernetes_io_created_for_pvc_name=", exposition
         )
 
         legacy_label_name = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
@@ -692,9 +692,10 @@ class TestApp(unittest.TestCase):
         that escaping scheme), so it can scrape the raw tag-derived labels
         without them being invalid exposition.
 
-        This test currently FAILS, confirming the bug: the `/metrics`
-        response is unchanged (unquoted, invalid label names; no escaping
-        parameter in `Content-Type`) no matter what the client requests.
+        With prometheus-client's Accept-header content negotiation
+        (>=0.20), the `/metrics` response now varies by escaping scheme:
+        `escaping=allow-utf-8` yields quoted UTF-8 label names and a
+        `Content-Type` reflecting that scheme.
         """
         collector = EC2SAUCollector(
             regions=["us-east-1"],
@@ -720,11 +721,17 @@ class TestApp(unittest.TestCase):
             body = b"".join(app(environ, start_response))
             return body, captured["headers"]
 
-        _, default_headers = request("*/*")
+        default_body, default_headers = request("*/*")
         utf8_body, utf8_headers = request(
             "application/openmetrics-text;version=1.0.0;charset=utf-8;escaping=allow-utf-8"
         )
 
+        self.assertNotIn(
+            "escaping=allow-utf-8",
+            default_headers.get("Content-Type", ""),
+            "default request should not negotiate UTF-8 escaping",
+        )
+        self.assertNotIn(b'"tag_ebs.csi.aws.com/cluster"=', default_body)
         self.assertIn(
             "escaping=allow-utf-8",
             utf8_headers.get("Content-Type", ""),
