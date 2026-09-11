@@ -16,7 +16,7 @@ multiprocessing-logging==0.3.4
 nh3==0.2.14
 packaging==23.2
 pkginfo==1.9.6
-prometheus-client==0.17.1
+prometheus-client==0.26.0
 Pygments==2.16.1
 pyproject_hooks==1.0.0
 python-dateutil==2.8.2

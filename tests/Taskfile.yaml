@@ -2,6 +2,9 @@
 
 version: "3"
 
+vars:
+  DIRECTORY: '{{ .DIRECTORY | default "." }}'
+
 tasks:
   sau:
     desc: Run Python tests
@@ -9,4 +12,4 @@ tasks:
       - |
         ../.venv/bin/python3 -X tracemalloc=25 -m unittest test_sau.py
     silent: false
-    dir: ./tests
+    dir: "{{ .DIRECTORY }}"
