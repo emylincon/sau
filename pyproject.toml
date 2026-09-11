@@ -15,8 +15,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "boto3>=1.28.80",
-    "prometheus-client==0.17.1",
+    "boto3>=1.43.93",
+    "prometheus-client==0.26.0",
     "PyYAML>=5.3.1",
     "requests",
     "multiprocessing-logging==0.3.4",

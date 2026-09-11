@@ -7,6 +7,8 @@ includes:
     taskfile: ./docker
   tests:
     taskfile: ./tests
+    vars:
+      DIRECTORY: "./tests"
 
 tasks:
   start:

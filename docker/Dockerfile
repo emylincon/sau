@@ -1,4 +1,4 @@
-FROM python:3.12-alpine3.21 as builder
+FROM python:3.12-alpine3.21 AS builder
 
 WORKDIR /exporter
 

@@ -10,12 +10,16 @@
 #!/bin/python3
 import sys
 import os
+import re
 import unittest
 import datetime
 from typing import Any, List
 
 # caution: path[0] is reserved for script path (or '' in REPL)
 sys.path.insert(1, f"{os.path.dirname(os.path.abspath(__file__))}/../src/")
+
+from prometheus_client import generate_latest, make_wsgi_app
+from prometheus_client.core import CollectorRegistry
 
 from sau.__main__ import Log, Util, EC2SAUCollector
 
@@ -357,6 +361,34 @@ def get_aws_client(module: str, region_name: str) -> Any:
     return MockClient(module, region_name=region_name)
 
 
+class MockClientWithDottedTags(MockClient):
+    """
+    Mimics AWS tag keys created by the EBS CSI driver / Kubernetes
+    (e.g. `ebs.csi.aws.com/cluster`, `kubernetes.io/created-for/pvc/name`)
+    that contain '.' and '/' characters, as described in
+    https://github.com/NBCUDTC/nowtv-ansible/issues/9303
+    """
+
+    def describe_volumes(self, Filters: List[dict]) -> dict:
+        response = super().describe_volumes(Filters=Filters)
+        response["Volumes"][0]["Tags"] += [
+            {"Key": "ebs.csi.aws.com/cluster", "Value": "true"},
+            {"Key": "kubernetes.io/created-for/pvc/name", "Value": "server-data"},
+        ]
+        return response
+
+    def describe_instances(self, Filters: List[dict]) -> dict:
+        response = super().describe_instances(Filters=Filters)
+        response["Reservations"][0]["Instances"][0]["Tags"] += [
+            {"Key": "ebs.csi.aws.com/cluster", "Value": "true"},
+        ]
+        return response
+
+
+def get_aws_client_with_dotted_tags(module: str, region_name: str) -> Any:
+    return MockClientWithDottedTags(module, region_name=region_name)
+
+
 class TestApp(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -605,6 +637,113 @@ class TestApp(unittest.TestCase):
         self.assertDictEqual(d1=Util.read_yaml_file(filename=config_file), d2=result)
         self.assertDictEqual(d1=Util.get_config(filename=config_file), d2=result)
         self.assertIsInstance(obj=Util.version(), cls=str)
+
+    def test_metrics_exposition_rejects_dotted_tag_label_names(self):
+        """
+        Reproduces https://github.com/NBCUDTC/nowtv-ansible/issues/9303:
+
+        AWS tag keys containing '.' or '/' (e.g. the EBS CSI driver's
+        `ebs.csi.aws.com/cluster` or Kubernetes' `kubernetes.io/created-for/pvc/name`)
+        are turned into unquoted, non-ASCII Prometheus label names. That is
+        invalid in the Prometheus text exposition format and causes
+        Prometheus 3.x to fail the scrape with a hard parse error.
+
+        With prometheus-client's default `underscores` escaping scheme
+        (>=0.20), dotted/slashed tag keys are sanitised to `_` before being
+        emitted, so this now passes.
+        """
+        collector = EC2SAUCollector(
+            regions=["us-east-1"],
+            exclude_tags={},
+            client_getter=get_aws_client_with_dotted_tags,
+        )
+        registry = CollectorRegistry()
+        registry.register(collector)
+        exposition = generate_latest(registry).decode()
+
+        # Sanity check: confirm our fixture's tag keys were sanitised
+        # (dots/slashes -> underscores) rather than silently dropped.
+        self.assertIn("tag_ebs_csi_aws_com_cluster=", exposition)
+        self.assertIn(
+            "tag_kubernetes_io_created_for_pvc_name=", exposition
+        )
+
+        legacy_label_name = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+        label_name_pattern = re.compile(r"[{,]([A-Za-z_][A-Za-z0-9_./]*)\s*=\s*\"")
+        label_names = sorted(set(label_name_pattern.findall(exposition)))
+
+        invalid_label_names = [
+            name for name in label_names if not legacy_label_name.match(name)
+        ]
+        self.assertEqual(
+            invalid_label_names,
+            [],
+            "exporter emitted Prometheus-invalid label name(s): "
+            f"{invalid_label_names}. See "
+            "https://github.com/NBCUDTC/nowtv-ansible/issues/9303",
+        )
+
+    def test_metrics_endpoint_ignores_accept_header_escaping(self):
+        """
+        Reproduces the "content negotiation does not help" part of
+        https://github.com/NBCUDTC/nowtv-ansible/issues/9303: a client that
+        requests `escaping=allow-utf-8` via the `Accept` header should
+        receive quoted UTF-8 label names (and a `Content-Type` reflecting
+        that escaping scheme), so it can scrape the raw tag-derived labels
+        without them being invalid exposition.
+
+        With prometheus-client's Accept-header content negotiation
+        (>=0.20), the `/metrics` response now varies by escaping scheme:
+        `escaping=allow-utf-8` yields quoted UTF-8 label names and a
+        `Content-Type` reflecting that scheme.
+        """
+        collector = EC2SAUCollector(
+            regions=["us-east-1"],
+            exclude_tags={},
+            client_getter=get_aws_client_with_dotted_tags,
+        )
+        registry = CollectorRegistry()
+        registry.register(collector)
+        app = make_wsgi_app(registry)
+
+        def request(accept_header: str):
+            captured = {}
+
+            def start_response(status, headers):
+                captured["status"] = status
+                captured["headers"] = dict(headers)
+
+            environ = {
+                "REQUEST_METHOD": "GET",
+                "PATH_INFO": "/metrics",
+                "HTTP_ACCEPT": accept_header,
+            }
+            body = b"".join(app(environ, start_response))
+            return body, captured["headers"]
+
+        default_body, default_headers = request("*/*")
+        utf8_body, utf8_headers = request(
+            "application/openmetrics-text;version=1.0.0;charset=utf-8;escaping=allow-utf-8"
+        )
+
+        self.assertNotIn(
+            "escaping=allow-utf-8",
+            default_headers.get("Content-Type", ""),
+            "default request should not negotiate UTF-8 escaping",
+        )
+        self.assertNotIn(b'"tag_ebs.csi.aws.com/cluster"=', default_body)
+        self.assertIn(
+            "escaping=allow-utf-8",
+            utf8_headers.get("Content-Type", ""),
+            "expected Content-Type to reflect the negotiated escaping=allow-utf-8 "
+            f"scheme, got: {utf8_headers.get('Content-Type')!r}",
+        )
+        self.assertIn(
+            b'"tag_ebs.csi.aws.com/cluster"=',
+            utf8_body,
+            "expected UTF-8 label names to be quoted when the client "
+            "negotiates escaping=allow-utf-8",
+        )
 
 
 if __name__ == "__main__":
