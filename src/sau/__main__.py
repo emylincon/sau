@@ -25,8 +25,8 @@ import json
 from multiprocessing_logging import install_mp_handler
 from typing import Any, Callable, Dict
 
-VERSION = "0.1.0"
-BUILD_DATE = "2026-09-11 23:11"
+VERSION = "0.1.1"
+BUILD_DATE = "2026-09-12 14:45"
 AUTHOR = "Emeka Ugwuanyi"
 
 
